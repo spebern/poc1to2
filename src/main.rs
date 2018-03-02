@@ -5,6 +5,55 @@ extern crate systemstat;
 use systemstat::{System, Platform};
 use std::fs::File;
 
+struct PlotFile {
+    account_id: u64,
+    start_nonce: u64,
+    nonce_count: u64,
+    stagger: u64,
+    optimized: bool,
+}
+
+fn parse_file_name(file_name: String) -> Option<PlotFile> {
+    let splits: Vec<_> = file_name.split("_").collect();
+    if splits.len() < 4 {
+        println!("plot has invalid file name: {}", file_name);
+        return None;
+    }
+
+
+    let account_id = splits[0].parse::<u64>().ok();
+    if account_id == None {
+        println!("failed to parse account id");
+        return None
+    }
+
+    let start_nonce = splits[1].parse::<u64>().ok();
+    if account_id == None {
+        println!("failed to start nonce");
+        return None
+    }
+
+    let nonce_count = splits[2].parse::<u64>().ok();
+    if nonce_count == None {
+        println!("failed to parse nonce count");
+        return None
+    }
+
+    let stagger = splits[3].parse::<u64>().ok();
+    if stagger == None {
+        println!("failed to parse stagger");
+        return None
+    }
+
+    return Some(PlotFile{
+        account_id: account_id.unwrap(),
+        start_nonce: start_nonce.unwrap(),
+        nonce_count: nonce_count.unwrap(),
+        stagger: stagger.unwrap(),
+        optimized: nonce_count == stagger,
+    });
+}
+
 fn main() {
 
     // COMMAND LINE PROCESSING
