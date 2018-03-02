@@ -29,7 +29,7 @@ fn parse_file_name(file_name: String) -> Option<PlotFile> {
 
     let start_nonce = splits[1].parse::<u64>().ok();
     if account_id == None {
-        println!("failed to start nonce");
+        println!("failed to parse start nonce");
         return None
     }
 
