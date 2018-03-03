@@ -20,29 +20,28 @@ fn parse_file_name(file_name: String) -> Option<PlotFile> {
         return None;
     }
 
-
     let account_id = splits[0].parse::<u64>().ok();
     if account_id == None {
         println!("failed to parse account id");
-        return None
+        return None;
     }
 
     let start_nonce = splits[1].parse::<u64>().ok();
-    if account_id == None {
+    if start_nonce == None {
         println!("failed to parse start nonce");
-        return None
+        return None;
     }
 
     let nonce_count = splits[2].parse::<u64>().ok();
     if nonce_count == None {
         println!("failed to parse nonce count");
-        return None
+        return None;
     }
 
     let stagger = splits[3].parse::<u64>().ok();
     if stagger == None {
         println!("failed to parse stagger");
-        return None
+        return None;
     }
 
     return Some(PlotFile{
@@ -115,3 +114,5 @@ fn main() {
     
 }
 
+#[cfg(test)]
+mod test;
