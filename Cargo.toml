@@ -6,3 +6,6 @@ authors = ["rico666 <bots@cryptoguru.org>"]
 [dependencies]
 clap = "~2.30"
 systemstat = "*"
+
+[dev-dependencies]
+md5 = "^0.3.7"
