@@ -1,7 +1,7 @@
 extern crate clap;
 use clap::{Arg, App};
 use std::io::prelude::*;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -17,11 +17,13 @@ struct Plot<'a> {
     offset: u64,
     nonces: i64,
     stagger: u64,
-    path: &'a Path
+    size: u64,
+    path: &'a Path,
+    out_dir: Option<&'a Path>
 }
 
 impl<'a> Plot<'a> {
-    fn new(path: &str) -> Plot {
+    fn new(path: &'a str, out: Option<&'a str>) -> Plot<'a> {
         let parts: Vec<&str> = path.split("_").collect();
         if parts.len() < 4 {
             panic!("plot file has wrong format")
@@ -62,21 +64,44 @@ impl<'a> Plot<'a> {
             panic!("expected plot size {} but got {}", exp_size, size);
         };
 
+        let out_dir = if out.is_some() {
+            let out_dir = Path::new(out.unwrap());
+            if !out_dir.is_dir() {
+                panic!("{} is not not a directory", out.unwrap());
+            }
+            Some(out_dir)
+        } else {
+            None
+        };
+
         Plot{
             id: id_res.unwrap(),
             offset: offset_res.unwrap(),
             nonces: nonces,
             stagger: stagger_res.unwrap(),
-            path: path
+            size: size,
+            path: path,
+            out_dir: out_dir
         }
     }
 
     fn convert(&self) {
         let mut from = File::open(self.path).unwrap();
-        let mut to = OpenOptions::new().write(true).open(self.path).unwrap();
         let block_size = self.nonces * SCOOP_SIZE;
         let mut buffer1 = vec![0; block_size as usize];
         let mut buffer2 = vec![0; block_size as usize];
+
+        let mut to = if self.out_dir.is_some() {
+            let mut p = PathBuf::from(self.out_dir.unwrap());
+            p.push(self.poc2_name());
+            let f = File::create(&p).unwrap();
+            if f.set_len(self.size).is_err() {
+                panic!("failed to preallocate size {}", self.size);
+            };
+            OpenOptions::new().write(true).open(p.as_path()).unwrap()
+        } else {
+            OpenOptions::new().write(true).open(self.path).unwrap()
+        };
 
         for scoop in 0i64 .. SCOOPS_IN_NONCE / 2 {
             let pos = scoop * block_size;
@@ -116,7 +141,9 @@ impl<'a> Plot<'a> {
             }
         }
 
-        fs::rename(self.path, self.poc2_name());
+        if self.out_dir.is_none() {
+            fs::rename(self.path, self.poc2_name());
+        }
     }
 
     fn poc2_name(&self) -> String {
@@ -139,17 +166,10 @@ fn main() {
 to copy on write mode. (Else in-place is default) and allows you to
 fasten up the conversion at the expense of temporary additional HDD
 space.")
-             .takes_value(true)
-             .value_name("OUT")).get_matches();
+             .takes_value(true)).get_matches();
 
-    let plot = Plot::new(matches.value_of("in").unwrap());
+    let plot = Plot::new(matches.value_of("in").unwrap(), matches.value_of("out"));
     plot.convert();
-}
-
-fn preallocate(path: &str, size: u64) -> std::io::Result<()>{
-    let f = File::create(path)?;
-    f.set_len(size)?;
-    Ok(())
 }
 
 #[cfg(test)]
@@ -162,7 +182,7 @@ mod tests {
         let plot_file = "11253871103436815155_0_10_10";
         fs::copy(plot_file.to_owned() + ".orig", plot_file);
 
-        let plot = Plot::new(plot_file);
+        let plot = Plot::new(plot_file, None);
 
         assert_eq!(plot.id, 11253871103436815155);
         assert_eq!(plot.offset, 0);
