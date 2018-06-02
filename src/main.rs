@@ -16,7 +16,6 @@ struct Plot<'a> {
     id: u64,
     offset: u64,
     nonces: i64,
-    stagger: u64,
     size: u64,
     path: &'a Path,
     out_dir: Option<&'a Path>
@@ -44,7 +43,7 @@ impl<'a> Plot<'a> {
             panic!("nonces of plotfile has wrong format")
         }
 
-        let stagger_res = parts[3].parse::<u64>();
+        let stagger_res = parts[3].parse::<i64>();
         if stagger_res.is_err() {
             panic!("stagger of plotfile has wrong format")
         }
@@ -58,6 +57,11 @@ impl<'a> Plot<'a> {
         };
 
         let nonces = nonces_res.unwrap();
+        let stagger = stagger_res.unwrap();
+        if nonces != stagger {
+            panic!("converter only works with optimized plotfiles");
+        };
+
         let size = fs::metadata(path).unwrap().len();
         let exp_size = nonces * NONCE_SIZE;
         if size != exp_size as u64 {
@@ -78,7 +82,6 @@ impl<'a> Plot<'a> {
             id: id_res.unwrap(),
             offset: offset_res.unwrap(),
             nonces: nonces,
-            stagger: stagger_res.unwrap(),
             size: size,
             path: path,
             out_dir: out_dir
@@ -106,13 +109,13 @@ impl<'a> Plot<'a> {
         for scoop in 0i64 .. SCOOPS_IN_NONCE / 2 {
             let pos = scoop * block_size;
 
-            from.seek(SeekFrom::Start(pos as u64));
+            from.seek(SeekFrom::Start(pos as u64)).unwrap();
             let numread = from.read(&mut buffer1).unwrap();
             if numread as i64 != block_size {
                 panic!("read {} bytes instead of {}", numread, block_size);
             }
 
-            from.seek(SeekFrom::End(-pos - block_size));
+            from.seek(SeekFrom::End(-pos - block_size)).unwrap();
             let numread = from.read(&mut buffer2).unwrap();
             if numread as i64 != block_size {
                 panic!("read {} bytes instead of {}", numread, block_size);
@@ -128,13 +131,13 @@ impl<'a> Plot<'a> {
                 off += SCOOP_SIZE as usize;
             }
 
-            to.seek(SeekFrom::End(-pos - block_size));
+            to.seek(SeekFrom::End(-pos - block_size)).unwrap();
             let numwrite = to.write(&buffer2).unwrap();
             if numwrite as i64 != block_size {
                 panic!("wrote {} bytes instead of {}", numread, block_size)
             }
 
-            to.seek(SeekFrom::Start(pos as u64));
+            to.seek(SeekFrom::Start(pos as u64)).unwrap();
             let numwrite = to.write(&buffer1).unwrap();
             if numwrite as i64 != block_size {
                 panic!("wrote {} bytes instead of {}", numread, block_size)
@@ -142,7 +145,7 @@ impl<'a> Plot<'a> {
         }
 
         if self.out_dir.is_none() {
-            fs::rename(self.path, self.poc2_name());
+            fs::rename(self.path, self.poc2_name()).unwrap();
         }
     }
 
@@ -187,7 +190,6 @@ mod tests {
         assert_eq!(plot.id, 11253871103436815155);
         assert_eq!(plot.offset, 0);
         assert_eq!(plot.nonces, 10);
-        assert_eq!(plot.stagger, 10);
         assert_eq!(plot.path, Path::new(plot_file));
 
         let poc2_plot_file = plot.poc2_name();
