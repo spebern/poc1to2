@@ -5,7 +5,6 @@ authors = ["PoC Consortium <bots@cryptoguru.org>"]
 
 [dependencies]
 clap = "~2.30"
-systemstat = "*"
 
 [dev-dependencies]
 md5 = "^0.3.7"
