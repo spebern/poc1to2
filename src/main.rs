@@ -145,7 +145,8 @@ impl<'a> Plot<'a> {
         }
 
         if self.out_dir.is_none() {
-            fs::rename(self.path, self.poc2_name()).unwrap();
+            let out = PathBuf::from(self.path.parent().unwrap()).join(self.poc2_name());
+            fs::rename(self.path, out).unwrap();
         }
     }
 
