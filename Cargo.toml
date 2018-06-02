@@ -1,7 +1,7 @@
 [package]
 name = "poc1to2"
 version = "0.1.0"
-authors = ["rico666 <bots@cryptoguru.org>"]
+authors = ["PoC Consortium <bots@cryptoguru.org>"]
 
 [dependencies]
 clap = "~2.30"
